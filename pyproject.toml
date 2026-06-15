@@ -4,6 +4,12 @@ version = "1.1.11"  # Mirror `notebookutils` actual version
 description = "A package that allows to use synapse mssparkutils without actual functionality. This helps to generate the build. Unofficial fork of dummy-notebookutils."
 readme = "README.md"
 requires-python = ">=3.10"
+dependencies = [
+    "azure-storage-file-datalake>=12",
+    "azure-identity>=1",
+    "azure-keyvault-secrets>=4",
+    "pyyaml>=6",
+]
 classifiers = ["Programming Language :: Python :: 3"]
 license = "MIT"
 license-files = ["LICEN[CS]E*"]

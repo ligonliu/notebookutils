@@ -13,9 +13,12 @@ putSecret(akvName, secretName, secretValue): puts AKV secret for a given akvName
 putSecretWithLS(linkedService, secretName, secretValue): puts AKV secret for a given linked service, secretName
 """
 
+from notebookutils import credentials
+
 
 def getToken(audience, name=""):
-    return ""
+    """Get a token for the given audience (delegates to notebookutils.credentials)."""
+    return credentials.getToken(audience)
 
 
 def getConnectionStringOrCreds(linkedService):
@@ -41,7 +44,8 @@ def getSPTokenWithCertLS(
 
 
 def getSecret(akvName, secret, linkedService=""):
-    return ""
+    """Get a secret from Key Vault (delegates to notebookutils.credentials)."""
+    return credentials.getSecret(akvName, secret)
 
 
 def getSecretWithLS(linkedService, secret):
@@ -49,7 +53,8 @@ def getSecretWithLS(linkedService, secret):
 
 
 def putSecret(akvName, secretName, secretValue, linkedService=""):
-    return ""
+    """Put a secret in Key Vault (delegates to notebookutils.credentials)."""
+    return credentials.putSecret(akvName, secretName, secretValue)
 
 
 def putSecretWithLS(linkedService, secretName, secretValue):
@@ -57,7 +62,8 @@ def putSecretWithLS(linkedService, secretName, secretValue):
 
 
 def isValidToken(token):
-    return False
+    """Check if a token is still valid (delegates to notebookutils.credentials)."""
+    return credentials.isValidToken(token)
 
 
 def configureAzureBlobStorageSASBased(linkedService, container, sparkSession):

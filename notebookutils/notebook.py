@@ -20,10 +20,6 @@ Use notebookutils.notebook.help("methodName") for more info about a method.
 from typing import Any
 
 
-def updateNBSEndpoint(endpoint):
-    pass
-
-
 def help(method_name: str | None = None):
     pass
 

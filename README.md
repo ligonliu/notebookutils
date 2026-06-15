@@ -1,19 +1,36 @@
-# Dummy notebookutils / mssparkutils for Python
+# notebookutils: pySpark notebook utility
 
-This package is an unofficial fork of [https://pypi.org/project/dummy-notebookutils/](https://pypi.org/project/dummy-notebookutils/), a pure dummy interfaces package which mirrors [MsSparkUtils' APIs](https://learn.microsoft.com/en-us/azure/synapse-analytics/spark/microsoft-spark-utilities?pivots=programming-language-r) of [Azure Synapse Analytics](https://learn.microsoft.com/en-us/azure/synapse-analytics/) for python users,customer of Azure Synapse Analytics can download this package from PyPi to generate the build.
+generic notebookutils on arbitrary local/VM/K8s environment, for developing and running pySpark notebooks without Databricks / Azure Synapse / Microsoft Fabric environments.
 
-The original package was no longer available, preventing me from submitting pull requests to address typing issues. Therefore, I recreated the project, updating it to mirror the latest version of `notebookutils` (1.1.11) at the time of writing.
+## Introduction to **`dbutils`** and **`mssparkutils`** 
+In cloud Platform-as-a-Service (PaaS) environments, **`dbutils`** and **`mssparkutils`** (recently rebranded as **`notebookutils`**) are essential, built-in utility packages designed to bridge the gap between PySpark code and the underlying cloud infrastructure.
 
-## Getting started
+While Apache Spark natively excels at distributed data processing, it lacks built-in mechanisms for environment-specific orchestration. These vendor-specific libraries step in to provide that critical operational control layer.
 
-Install `dummy_notebookutils`
+* **`dbutils` (Databricks Utilities):** The native toolset for the Databricks platform. It allows engineers to interactively navigate the Databricks File System (DBFS), securely retrieve credentials via Azure Key Vault or AWS Secrets Manager, parameterize notebooks using widgets, and chain multiple notebooks into modular workflows.
+* **`mssparkutils` / `notebookutils` (Microsoft Spark Utilities):** The direct counterpart built for Microsoft Azure Synapse Analytics and Microsoft Fabric. It offers near-identical functionality and APIs tailored for the Microsoft ecosystem, enabling developers to manage files in Azure Data Lake Storage (ADLS) Gen2, handle Microsoft Entra ID tokens, and control notebook pipeline execution paths.
+
+Ultimately, both packages abstract away complex cloud APIs, allowing data engineers to write secure, scalable, and maintainable data pipelines without leaving their interactive PySpark notebook environments.
+
+## Installation
+
+Install `notebookutils`
 
 ```sh
-pip install dummy-notebookutils-reborn
+pip install notebookutils
 ```
 
 ## Usage
 
+### Configuration Files
+
+notebookutils read the following configuration files for authenticating to cloud resources. They need to be placed before accessing cloud file systems and secrets:
+
+
+.notebookutils/storage/account_name.azure.yaml
+.notebookutils/identity.yaml
+
+### 
 Add the following code below your other imports:
 
 ```python
@@ -24,6 +41,3 @@ if TYPE_CHECKING:
 
     from notebookutils import mssparkutils
 ```
-
-> [!WARNING]
-> again, the package only mirrors APIs of synapse mssparkutils without actual functionality. The main goal is to help customer generating the local build. You always need upload your built package to synapse workspace for end to end testing.
