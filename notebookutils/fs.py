@@ -30,7 +30,7 @@ from typing import Any, Dict, Optional
 import yaml
 
 from azure.core.exceptions import ResourceNotFoundError as AzureResourceNotFoundError
-from azure.identity import DefaultAzureCredential
+from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 from azure.storage.filedatalake import (
     DataLakeDirectoryClient,
     DataLakeFileClient,
@@ -228,13 +228,23 @@ def _get_service_client(account_name: str) -> DataLakeServiceClient:
             )
         return DataLakeServiceClient(account_url, credential=sas_token)
 
-    elif mode in ("spn", "msi", "azcli"):
+    elif mode in ("spn", "azcli"):
         # For SPN, DefaultAzureCredential can use env vars (AZURE_TENANT_ID,
-        # AZURE_CLIENT_ID, AZURE_CLIENT_SECRET). For MSI / azcli it
+        # AZURE_CLIENT_ID, AZURE_CLIENT_SECRET). For azcli it
         # picks up the appropriate credential automatically.
         return DataLakeServiceClient(
             account_url, credential=DefaultAzureCredential()
         )
+
+    elif mode == "msi":
+        # Use ManagedIdentityCredential with the explicit UAMI client-id
+        # if provided, so we don't mistakenly fall through to SAMI.
+        client_id = azstorage.get("appid")
+        if client_id:
+            credential = ManagedIdentityCredential(client_id=client_id)
+        else:
+            credential = DefaultAzureCredential()
+        return DataLakeServiceClient(account_url, credential=credential)
 
     else:
         raise ValueError(
@@ -476,22 +486,34 @@ def _stream_copy_file(src_uri: str, dest_uri: str) -> None:
 
 
 def _adls_is_directory(uri: str) -> bool:
-    """Check whether an ADLS URI points to a directory."""
+    """Check whether an ADLS URI points to a directory.
+
+    Uses a file-extension heuristic: paths without a recognizable
+    file extension (or ending in ``/``) are treated as directories.
+    If still uncertain, both file and directory checks are attempted.
+    """
+    account, container, path = _parse_adls_uri(uri)
+    rel = path.strip("/")
+    if not rel:
+        return True  # container root is always a directory
+
+    # Trailing slash → explicit directory
+    if uri.endswith("/"):
+        return True
+
+    # File extension → definitely a file
+    base = rel.rsplit("/", 1)[-1]
+    if "." in base:
+        return False
+
+    # No extension: try both and go with the one that succeeds
+    dc = _get_dir_client(uri)
     try:
-        dc = _get_dir_client(uri)
         dc.get_directory_properties()
         return True
     except AzureResourceNotFoundError:
-        return False
-    except Exception:
-        # Might be a file -- try file properties
-        try:
-            fc = _get_file_client(uri)
-            fc.get_file_properties()
-            return False
-        except Exception:
-            # Default: guess based on trailing slash
-            return uri.rstrip("/").endswith("/") if uri.endswith("/") else False
+        pass
+    return False
 
 
 def _adls_create_directory_p(fs_client: FileSystemClient, path: str) -> DataLakeDirectoryClient:
@@ -651,7 +673,21 @@ def put(file: str, content: str, overwrite: bool = False) -> bool:
             f.write(data)
         return True
     fc = _get_file_client(file)
-    fc.upload_data(data, overwrite=overwrite)
+    if not data:
+        fc.create_file()
+        return True
+    if overwrite:
+        fc.upload_data(data, overwrite=True)
+    else:
+        try:
+            fc.get_file_properties()
+            # File exists: let the SDK apply the if-none-match check
+            fc.upload_data(data, overwrite=False)
+        except AzureResourceNotFoundError:
+            # File doesn't exist: create it, then write
+            fc.create_file()
+            fc.append_data(data, offset=0, length=len(data))
+            fc.flush_data(len(data))
     return True
 
 
@@ -669,7 +705,17 @@ def head(file: str, max_bytes: int = 1024 * 100) -> str:
         with open(file, "rb") as f:
             return f.read(max_bytes).decode("utf-8", errors="replace")
     fc = _get_file_client(file)
-    download = fc.download_file(length=max_bytes)
+    try:
+        props = fc.get_file_properties()
+        file_size = props.size
+    except Exception:
+        file_size = -1  # unknown size — proceed without offset+length
+    if file_size == 0:
+        return ""
+    if file_size > 0:
+        download = fc.download_file(offset=0, length=min(max_bytes, file_size))
+    else:
+        download = fc.download_file(offset=0, length=max_bytes)
     return download.readall().decode("utf-8", errors="replace")
 
 
@@ -728,18 +774,14 @@ def rm(dir: str, recurse: bool = False) -> bool:
         return True
 
     # ADLS
-    try:
-        dc = _get_dir_client(dir)
-        dc.get_directory_properties()
-        # It's a directory
+    is_dir = _adls_is_directory(dir)
+
+    if is_dir:
         if not recurse:
             raise IsADirectoryError(f"Path is a directory: {dir!r}. Use recurse=True.")
+        dc = _get_dir_client(dir)
         dc.delete_directory()
         return True
-    except AzureResourceNotFoundError:
-        pass
-    except IsADirectoryError:
-        raise
 
     # Try as file
     try:
