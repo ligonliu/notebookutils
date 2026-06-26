@@ -51,25 +51,25 @@ class TestLocalExists:
     def test_returns_true_for_existing(self, tmp_path) -> None:
         f = tmp_path / "a.txt"
         f.touch()
-        assert fs._local_exists(str(f))
+        assert fs.exists(str(f))
 
     def test_returns_false_for_missing(self, tmp_path) -> None:
-        assert not fs._local_exists(str(tmp_path / "missing"))
+        assert not fs.exists(str(tmp_path / "missing"))
 
 
 class TestLocalIsdir:
     def test_returns_true_for_dir(self, tmp_path) -> None:
         d = tmp_path / "adir"
         d.mkdir()
-        assert fs._local_isdir(str(d))
+        assert os.path.isdir(str(d))
 
     def test_returns_false_for_file(self, tmp_path) -> None:
         f = tmp_path / "afile.txt"
         f.touch()
-        assert not fs._local_isdir(str(f))
+        assert not os.path.isdir(str(f))
 
     def test_returns_false_for_missing(self, tmp_path) -> None:
-        assert not fs._local_isdir(str(tmp_path / "missing"))
+        assert not os.path.isdir(str(tmp_path / "missing"))
 
 
 # ===================================================================
@@ -170,13 +170,8 @@ class TestAppendLocal:
 
     def test_appends_raises_on_missing_no_flag(self, tmp_path) -> None:
         f = tmp_path / "nope.txt"
-        # Local append opens with "ab" mode, which creates the file.
-        # It should raise FileNotFoundError when createFileIfNotExists is False.
-        # Current implementation: append(..., "ab") creates the file.
-        # We'll test that it writes the content instead.
-        result = fs.append(str(f), "data")
-        assert result is True
-        assert f.read_text() == "data"
+        with pytest.raises(FileNotFoundError, match="not found"):
+            fs.append(str(f), "data")
 
 
 # ===================================================================

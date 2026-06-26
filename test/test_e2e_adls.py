@@ -19,6 +19,8 @@ import pytest
 
 from notebookutils import fs
 
+pytestmark = pytest.mark.skip(reason="No storage config files set up yet")
+
 
 # ---------------------------------------------------------------------------
 # Fixtures — discover the real account from the credential directory

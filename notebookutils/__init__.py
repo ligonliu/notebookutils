@@ -10,6 +10,7 @@ credentials: Utility for obtaining credentials (tokens and keys) for Synapse res
 __version__ = "1.1.11"  # match Synapse / Fabric notebookutils version number.
 
 __all__ = [
+    "config",
     "data",
     "fs",
     "lakehouse",
@@ -18,13 +19,13 @@ __all__ = [
     "runtime",
     "credentials",
     "udf",
-    "session",
     "variableLibrary",
     "warehouse",
     "workspace",
 ]
 
 from . import (
+    config,
     credentials,
     data,
     fs,

@@ -9,6 +9,10 @@ dependencies = [
     "azure-identity>=1",
     "azure-keyvault-secrets>=4",
     "pyyaml>=6",
+    "fsspec>=2024",
+    "adlfs>=2024",
+    "s3fs>=2024",
+    "gcsfs>=2024",
 ]
 classifiers = ["Programming Language :: Python :: 3"]
 license = "MIT"
