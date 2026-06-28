@@ -486,13 +486,13 @@ def mv(src: str, dest: str, create_path: bool = False, overwrite: bool = False) 
             if src_is_dir:
                 dc = _get_dir_client(src)
                 # rename_directory requires "container/relative_path" format
-                _, dst_rel = _parse_adls_uri(dest)
+                _, _, dst_rel = _parse_adls_uri(dest)
                 dc.rename_directory(
                     new_name=f"{dst_container}/{dst_rel.lstrip('/')}"
                 )
             else:
                 fc = _get_file_client(src)
-                _, dst_rel = _parse_adls_uri(dest)
+                _, _, dst_rel = _parse_adls_uri(dest)
                 fc.rename_file(
                     new_name=f"{dst_container}/{dst_rel.lstrip('/')}"
                 )

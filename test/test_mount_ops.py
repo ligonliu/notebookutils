@@ -111,7 +111,6 @@ class TestDelegation:
 # ===================================================================
 
 
-@pytest.mark.skip(reason="azcopy not installed in test environment")
 class TestFastCp:
     def test_fastcp_basic(self) -> None:
         src = "abfss://c@a.dfs.core.windows.net/path"
@@ -145,17 +144,21 @@ class TestFastCp:
             assert "--dry-run" in cmd
 
     def test_fastcp_azcopy_not_found(self) -> None:
+        src = "abfss://c@a.dfs.core.windows.net/x"
+        dst = "abfss://c@a.dfs.core.windows.net/y"
         with patch.object(fs.subprocess, "run") as mock_run:
             mock_run.side_effect = FileNotFoundError()
             with pytest.raises(RuntimeError, match="azcopy"):
-                fs.fastcp("a", "b")
+                fs.fastcp(src, dst)
 
     def test_fastcp_timeout(self) -> None:
+        src = "abfss://c@a.dfs.core.windows.net/x"
+        dst = "abfss://c@a.dfs.core.windows.net/y"
         with patch.object(fs.subprocess, "run") as mock_run:
             mock_run.side_effect = fs.subprocess.TimeoutExpired(
                 cmd="azcopy", timeout=3600
             )
-            result = fs.fastcp("a", "b")
+            result = fs.fastcp(src, dst)
         assert result is False
 
 
